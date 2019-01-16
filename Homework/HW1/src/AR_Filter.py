@@ -33,17 +33,56 @@ plt.xlabel('v (cycle/sample)')
 plt.show()
 
 # Plot Impulse Response for the AR filter
-# num = [0.2]
-# den = [1,-0.8]
-# tf = signal.TransferFunction(num,den)
-# T,yout = signal.impulse(tf, N=20)
+num = [0.1]
+den = [1,-0.9]
+dlti = signal.dlti(num,den,dt=0.1)
+tout,yout = signal.dimpulse(dlti,n=20)
+toutMod = tout[1:]*10
+# print(toutMod)
+dataMod = yout[0]
+dataMod = dataMod[1:,:]
+# print(dataMod)
+# print(tout.shape)
+# print(yout[0])
+fig = plt.figure()
+plt.title('Impulse Response For alpha = 0.9')
+markerline, stemlines, baseline = plt.stem(toutMod, dataMod, '-')
+plt.show()
 
-# fig = plt.figure()
-# markerline, stemlines, baseline = plt.stem(T, yout, '-')
-# plt.show()
+num = [0.5]
+den = [1,-0.5]
+dlti = signal.dlti(num,den,dt=0.1)
+tout,yout = signal.dimpulse(dlti,n=15)
+toutMod = tout[1:]*10
+# print(toutMod)
+dataMod = yout[0]
+dataMod = dataMod[1:,:]
+# print(dataMod)
+# print(tout.shape)
+# print(yout[0])
+fig = plt.figure()
+plt.title('Impulse Response For alpha = 0.5')
+markerline, stemlines, baseline = plt.stem(toutMod, dataMod, '-')
+plt.show()
+
+num = [0.9]
+den = [1,-0.1]
+dlti = signal.dlti(num,den,dt=0.1)
+tout,yout = signal.dimpulse(dlti,n=10)
+toutMod = tout[1:]*10
+# print(toutMod)
+dataMod = yout[0]
+dataMod = dataMod[1:,:]
+# print(dataMod)
+# print(tout.shape)
+# print(yout[0])
+fig = plt.figure()
+plt.title('Impulse Response For alpha = 0.1')
+markerline, stemlines, baseline = plt.stem(toutMod, dataMod, '-')
+plt.show()
 
 # Design an L = 4 Butterworth filter with bandwidth of ν0 = 0.25.
-[b,a] = signal.butter(4,0.25,btype='low')
+[b,a] = signal.butter(4,0.25,btype='low',analog=False)
 print('Numerator: ',b)
 print('Denominator: ',a)
 # Frequency response
@@ -57,10 +96,11 @@ plt.show()
 
 # Play arround with this filter
 # Create a numpy array of length 300 comprising iid realizations of a standard normal distribution.
-inputSignal = np.random.normal(50,1,300)
+inputSignal = np.random.normal(0,0.1,300)
 outputSignal = signal.lfilter(b,a,inputSignal)
 fig = plt.figure()
-plt.plot(inputSignal,'r', label='Input Signal')
+plt.title('Signal After ARMA Filter')
+plt.plot(inputSignal,'y', label='Input Signal')
 plt.plot(outputSignal,'b', label='Output Signal')
 plt.legend()
 plt.show()

@@ -52,6 +52,7 @@ mnist_testdata = h5py.File('../dataset1/mnist_testdata.hdf5','r+')
 xdata = np.asarray(mnist_testdata['xdata'])
 # check the shape
 print('xdata shape: ', xdata.shape)	# (10000, 784)
+xdata_trans = np.transpose(xdata)
 # GEt output data (labels) which is corresponding to input data
 ydata = np.asarray(mnist_testdata['ydata'])
 print('ydata shape: ', ydata.shape)	# (10000, 10)
@@ -88,7 +89,7 @@ def Softmax(x):
 	y -- A numpy matrix equal to the softmax of x, of shape (n,m)
 	'''
 	x_exp = np.exp(x)	# Take exp
-	x_sum = np.sum(x_exp, axis = 1, keepdims = True)	# get sum of x_exp
+	x_sum = np.sum(x_exp, axis = 0, keepdims = True)	# get sum the col.
 	y = x_exp/x_sum		# Output
 
 	assert(x.shape == y.shape)	# Size check
@@ -101,13 +102,121 @@ def Softmax(x):
 output layer
 '''
 
+def forward_linear_propagation(x_prev,W,b):
+	'''
+	Implement the forward propagation function
+
+	Arguments:
+	x_prev -- A numpy array of shape (n,m), activation from previous layer
+	W -- weights matrix
+	b -- bias matrix
+	
+	Returns:
+	x -- A numpy matrix equal to the softmax of x, of shape (n,m)
+	'''
+	b = np.reshape(b,(b.shape[0],1))
+	x = np.dot(W,x_prev) + b
+
+	# Size check
+	assert(x.shape == (W.shape[0],x_prev.shape[1]))
+
+	return x
+
+def foward_activation_propagation(x_prev,W,b,activation):
+	'''
+	Implement the forward propagation function
+
+	Arguments:
+	x_prev -- A numpy array of shape (n,m), activation from previous layer
+	W -- weights matrix
+	b -- bias matrix
+	activation -- activation function: currently has two function 'relu' and 'softmax'
+	
+	Returns:
+	x -- A numpy matrix equal to the softmax,relu of x, of shape (n,m)
+	'''
+
+	if activation == 'relu':
+		y = forward_linear_propagation(x_prev,W,b)
+		x = ReLU(y)
+	elif activation == 'softmax':
+		y = forward_linear_propagation(x_prev,W,b)
+		x = Softmax(y)
+
+	return x
+
+def set_largest_probability(y_input,activation):
+	'''
+	Implement the function which after softmax function:
+		set the largest probability in the array to 1 and the other to 0
+
+	Arguments:
+	y_input -- output from the softmax function
+
+	Returns:
+	y_output -- A numpy matrix equal to the softmax,relu of x, of shape (n,m)
+	'''
+	if activation == 'softmax':
+		y_output = np.zeros_like(y_input)  # Creat a zero array
+		y_output[np.arange(len(y_input)), y_input.argmax(1)] = 1	# Set largest probability = 1 and other to 0
+	else:
+		y_output = y_input
+
+	return y_output
 
 
+# Calculate the output
+# Output of first hidden layer
+output_1 = foward_activation_propagation(xdata_trans,W1,b1,activation = 'relu')
+output_2 = foward_activation_propagation(output_1,W2,b2,activation = 'relu')
+y_generate = foward_activation_propagation(output_2,W3,b3,activation = 'softmax')
+y_generate = np.transpose(y_generate)    # Transpose to size (10000,10)
+y_output = set_largest_probability(y_generate,activation = 'softmax')
 
+# print(y_output[0])
+# print(ydata[0])
 
+'''
+	E. Compare the output with the true label from ‘ydata’. The input is correctly classified if the
+position of the maximum element in the MLP output matches with the position of the 1 in
+ydata. Find the total number of correctly classified images in the whole set of 10,000. You
+should get 9790 correct.
+'''
+correct = 0 
+correct_list = list() 				  # Empty list to hold correct index
+error_list = list() 				  # Empty list to hold error index
+assert(y_output.shape == ydata.shape) # Size check
+num_rows = y_output.shape[0]
+for i in range (0,num_rows):
+	if(np.array_equal(y_output[i],ydata[i])):
+		correct = correct + 1
+		correct_list.append(i)
+	else:
+		error_list.append(i)
 
+print('The correct result after MLP is: ',correct)  # 9790
 
+'''
+	F. Sample some cases with correct classification and some with incorrect classification. Visually
+inspect them. For those that are incorrect, is the correct class obvious to you? You can use
+matplotlib for visualization:
+'''
+# Plot correct cases
+plt.imshow(xdata[correct_list[0]].reshape(28,28))
+plt.title('Correct Figure')
+plt.show()
 
+plt.imshow(xdata[correct_list[1]].reshape(28,28))
+plt.title('Correct Figure')
+plt.show()
+
+# Plot error cases
+plt.imshow(xdata[error_list[0]].reshape(28,28))
+plt.title('Error Figure')
+plt.show()
+plt.imshow(xdata[error_list[1]].reshape(28,28))
+plt.title('Error Figure')
+plt.show()
 
 
 

@@ -17,8 +17,9 @@ binary_random = h5py.File('../dataset5/binary_random_sp2019.hdf5','r+')
 humanData = np.asarray(binary_random['human'])                          # Get human generate random data with size (2400,20)
 computerData = np.asarray(binary_random['machine'])                     # Get computer generate random data with size (2400,20)                         
 # Create sample correlation matrix with size 20*20
-correlationHuman = np.corrcoef(np.transpose(humanData))                 # Size 20*20
-correlationComputer = np.corrcoef(np.transpose(computerData))           # Size 20*20
+Rh = humanData.T @ humanData / 2400
+Rm = computerData.T @ computerData / 2400
+R_tot = ( Rh + Rm ) / 2
 
 '''
     2. 
@@ -29,20 +30,14 @@ correlationComputer = np.corrcoef(np.transpose(computerData))           # Size 2
     e. Plot numbadk vs. k on a stem plot.
 '''
 # a. Find the eigen-vectors and eigen-values for ^R. 
-eValuesHuman, eVectorsHuman = np.linalg.eig(correlationHuman)            # Get eigen-vectors and eigen-values for correlationHuman matrix
-eValuesComputer, eVectorsComputer = np.linalg.eig(correlationComputer)   # Get eigen-vectors and eigen-values for correlationComputer matrix
+eValues, eVectors = np.linalg.eig(R_tot)                       # Get eigen-vectors and eigen-values for correlationHuman matrix
 # b. What is the variance of the most significant two components of the data?
-eValsTwoHuman = eValuesHuman[0:2,]                                       # the most significant two components of the eigenvalue of correlationHuman matrix
-eValsTwoComputer = eValuesComputer[0:2,]                                 # the most significant two components of the eigenvalue of correlationComputer matrix
-eVectTwoHuman = eVectorsHuman[0:2,]                                      # the most significant two components of the eigenvector of correlationHuman matrix
-eVectTwoComputer = eVectorsComputer[0:2,]                                # the most significant two components of the eigenvector of correlationComputer matrix
+eValuesTwo = eValues[0:2]
+eVectsTwo = eVectors[0:2]                                     
 # c. What percentage of the total variance is captured by these two components? 
-totalVarianceHuman = np.sum(eValuesHuman)                                # get total variance of eValuesHuman
-totalVarianceComputer = np.sum(eValuesComputer)                          # get total variance of eValuesComputer
-topTwoVarHuman = np.sum(eValsTwoHuman)                                   # top two e-values sum human
-topTwoVarComputer = np.sum(eValsTwoComputer)                             # top two e-values sum computer
-percentageTopTwoHuman = topTwoVarHuman/totalVarianceHuman                # percentage of top two variance human
-percentageTopTwoComputer = topTwoVarComputer/totalVarianceComputer       # percentage of top two variance computer
+totalVariance = np.sum(eValuesTwo)                                
+topTwo = np.sum(eValuesTwo)                                   
+percentageTopTwo = topTwo/totalVariance              
 # d. Can you see any signicance in the eigen-vectors e0 and e1 that would suggest why they capture much of the variation? 
 # print(eVectTwoHuman)
 '''
@@ -50,6 +45,41 @@ percentageTopTwoComputer = topTwoVarComputer/totalVarianceComputer       # perce
 '''
 # e. Plot numbadkk vs. k on a stem plot.
 # plt.figure()
-# plt.stem(eValuesHuman, linefmt='-')
+# plt.stem(eValues, linefmt='-')
 # plt.title('Eigen-values Stem Plot')
 # plt.show()
+
+'''
+    3. Create label data to indicate human or computer, i.e., computer: y = +1, human: -1 and merge the two data sets. 
+       Compute the linear classier weight vector w that maps the (20*1) vector to an estimate of the label. 
+       What is the error rate when you threshold ^y to a hard decision?
+'''
+humanOutput = -1*np.ones((humanData.shape[0],1))                                # Create human label: -1
+computerOutput = np.ones((computerData.shape[0],1))                             # Create computer label: 1
+Output = np.append(humanOutput,computerOutput)                                  # Merge Output data array along row: size(4800,1)
+Input = np.vstack((humanData,computerData))                                     # Merge Input data array along row: size(4800,1)
+weight, Re, rank, singular_vals = np.linalg.lstsq(Input, Output, rcond=None)    # Linear Classifier
+# print(weight)                                                                 # See weight
+Output_hat_soft = np.dot(weight,np.transpose(Input))
+Output_hat_hard = np.sign(Output_hat_soft)                                      #  -1 if x < 0, 0 if x==0, 1 if x > 0
+probMC = np.mean(Output!=Output_hat_hard)
+print('mis classification rate: ', probMC)
+
+'''
+    4. Visualize the data and classier in two dimensions. Take a reasonable number of
+    samples from each the computer and human data { e.g., 100 each. Project these onto
+    e0 and e1 and plot a scatter plot of the data. Add to this plot the decision boundary
+    projection in this 2D space.
+'''
+humanData_100 = humanData[0:200]
+computerData_100 = computerData[0:200]
+humanPro = np.dot(eVectsTwo,np.transpose(humanData_100))
+computerPro = np.dot(eVectsTwo,np.transpose(computerData_100))
+fig = plt.figure()
+plt.scatter(humanPro[0], humanPro[1], label = 'human', s=2)
+plt.scatter(computerPro[0], computerPro[1], label = 'machine', s=2)
+plt.legend('Human Random vs. Machine Random')
+axes = plt.gca()
+axes.set_xlabel('e0 direction')
+axes.set_ylabel('e1 direction')
+plt.show()

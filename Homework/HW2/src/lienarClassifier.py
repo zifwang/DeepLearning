@@ -20,14 +20,13 @@ computerData = np.asarray(binary_random['machine'])                     # Get co
 correlationHuman = np.corrcoef(np.transpose(humanData))                 # Size 20*20
 correlationComputer = np.corrcoef(np.transpose(computerData))           # Size 20*20
 
-
 '''
     2. 
     a. Find the eigen-vectors and eigen-values for ^R. 
     b. What is the variance of the most significant two components of the data? 
     c. What percentage of the total variance is captured by these two components? 
     d. Can you see any signicance in the eigen-vectors e0 and e1 that would suggest why they capture much of the variation? 
-    e. Plot k vs. k on a stem plot.
+    e. Plot numbadk vs. k on a stem plot.
 '''
 # a. Find the eigen-vectors and eigen-values for ^R. 
 eValuesHuman, eVectorsHuman = np.linalg.eig(correlationHuman)            # Get eigen-vectors and eigen-values for correlationHuman matrix
@@ -45,4 +44,12 @@ topTwoVarComputer = np.sum(eValsTwoComputer)                             # top t
 percentageTopTwoHuman = topTwoVarHuman/totalVarianceHuman                # percentage of top two variance human
 percentageTopTwoComputer = topTwoVarComputer/totalVarianceComputer       # percentage of top two variance computer
 # d. Can you see any signicance in the eigen-vectors e0 and e1 that would suggest why they capture much of the variation? 
-
+# print(eVectTwoHuman)
+'''
+    Ans: These eigen-vectors create lines which seperate data point well.
+'''
+# e. Plot numbadkk vs. k on a stem plot.
+# plt.figure()
+# plt.stem(eValuesHuman, linefmt='-')
+# plt.title('Eigen-values Stem Plot')
+# plt.show()

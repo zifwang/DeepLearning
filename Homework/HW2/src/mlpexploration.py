@@ -83,3 +83,11 @@ print("Test set score: %f" % nn.score(test_X, test_y))
 
 mse = mean_squared_error(test_y,predict_y)
 print("Mean Square Error after training: %f" % mse)
+
+'''
+    6. Same nn coeff.
+'''
+print(type(np.asarray(nn.coefs_)))
+# f = h5py.File('problem4.hdf5', 'w')
+# f.create_dataset('coefs',nn.coefs_)
+# f.create_dataset('intercepts',nn.intercepts_)

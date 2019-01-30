@@ -43,7 +43,7 @@ percentageTopTwo = topTwo/totalVariance
 '''
     Ans: These eigen-vectors create lines which seperate data point well.
 '''
-# e. Plot numbadkk vs. k on a stem plot.
+# e. Plot numbadkk vs. k on a stem plot.
 # plt.figure()
 # plt.stem(eValues, linefmt='-')
 # plt.title('Eigen-values Stem Plot')

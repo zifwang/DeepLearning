@@ -122,7 +122,7 @@ def inputCorrelation(data):
     for i in range (0,data.shape[0]):
         temp = data[i]
         correlation_temp = np.dot(np.transpose(temp),temp)
-        sum_correlation = correlation_temp.sum(axis = 1)
+        sum_correlation = np.sum(correlation_temp,axis = 1)
         correlation_temp = correlation_temp/sum_correlation
         correlationList.append(correlation_temp)
         
@@ -144,7 +144,7 @@ def outputInputCorrelation(inputData,outputData):
         inputTemp = inputData[i]
         outputTemp = outputData[i]
         correlation_temp = np.dot(outputTemp,inputTemp)
-        sum_correlation = correlation_temp.sum()
+        sum_correlation = np.sum(correlation_temp)
         correlation_temp = correlation_temp/sum_correlation
         correlationList.append(correlation_temp)
     
@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     # Aissgn data from inputdataSet as numpy array to matched_10_x, matched_10_z and matched_3_x, matched_3_z
     matched_10_x = getData(inputDatasetFile,'matched_10_x')         # (600, 501)
-    matched_10_v = getData(inputDatasetFile,'matched_10_v')         # (600, 501, 3)
+    matched_10_v = getData(inputDatasetFile,'matched_10_v')         # (600, `501`, 3)
     matched_10_y = getData(inputDatasetFile,'matched_10_y')         # (600, 501)
     matched_10_z = getData(inputDatasetFile,'matched_10_z')         # (600, 501)
 
@@ -264,4 +264,4 @@ if __name__ == "__main__":
 
     correlation_v_list = inputCorrelation(mismatched_v)
     correlation_v_y_list = outputInputCorrelation(mismatched_v,mismatched_y)
-    print(correlation_v_y_list[0])
+    # print(correlation_v_y_list[0])

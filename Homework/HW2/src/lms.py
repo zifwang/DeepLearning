@@ -5,7 +5,8 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-COLORCONSTANT = ['r','g','b','y']           # Define color constant here
+COLORCONSTANT = ['r','g','b']           # Define color constant here
+COLORCONSTANT_2 = ['c','y','m']           # Define color constant here
 
 def getData(inputh5pyFile,key):
     '''
@@ -177,27 +178,27 @@ if __name__ == "__main__":
     MSE_avg_10_005 = averageData(MSE_list_10_005,matched_10_v.shape[1])
     MSE_avg_10_015 = averageData(MSE_list_10_015,matched_10_v.shape[1])
 
-    plt.figure()
-    plt.plot(MSE_avg_10_005,'r',label = '10dB, eta=0.05')
-    plt.plot(MSE_avg_10_015,'b',label = '10dB, eta=0.15')
-    plt.legend()
-    plt.title('Learning Curve')
-    plt.xlabel('Updates')
-    plt.ylabel('MSE (dB)')
-    plt.show()
+    # plt.figure()
+    # plt.plot(MSE_avg_10_005,'r',label = '10dB, eta=0.05')
+    # plt.plot(MSE_avg_10_015,'b',label = '10dB, eta=0.15')
+    # plt.legend()
+    # plt.title('Learning Curve')
+    # plt.xlabel('Updates')
+    # plt.ylabel('MSE (dB)')
+    # plt.show()
 
 
-    MSE_list_3_005,weight_list_3_final_005,weight_tracking_3_005 = lms(matched_3_v,matched_3_z,3,0.05)
-    MSE_list_3_015,weight_list_3_final_015,weight_tracking_3_015 = lms(matched_3_v,matched_3_z,3,0.15)
+    MSE_list_3_005,weight_list_3_final_005,weight_tracking_3_005 = lms(matched_3_v,matched_3_z,3,0.3)
+    # MSE_list_3_015,weight_list_3_final_015,weight_tracking_3_015 = lms(matched_3_v,matched_3_z,3,0.15)
     MSE_avg_3_005 = averageData(MSE_list_3_005,matched_3_v.shape[1])
-    plt.figure()
-    plt.plot(MSE_avg_10_005,'r',label = '10dB, eta=0.05')
-    plt.plot(MSE_avg_3_005,'b',label = '3dB, eta=0.05')
-    plt.legend()
-    plt.title('Learning Curve')
-    plt.xlabel('Updates')
-    plt.ylabel('MSE (dB)')
-    plt.show()
+    # plt.figure()
+    # plt.plot(MSE_avg_10_005,'r',label = '10dB, eta=0.3')
+    # # plt.plot(MSE_avg_3_005,'b',label = '3dB, eta=0.05')
+    # plt.legend()
+    # plt.title('Learning Curve')
+    # plt.xlabel('Updates')
+    # plt.ylabel('MSE (dB)')
+    # plt.show()
 
 
     '''
@@ -220,14 +221,14 @@ if __name__ == "__main__":
         Plot these coecients vs. time (n).
     '''
 
-    plt.figure()
-    for i in range (0,timevarying_coefficents.shape[1]):
-        plt.plot(timevarying_coefficents[:,i], COLORCONSTANT[i], label = 'weight'+str(i))
-    plt.legend()
-    plt.title('Coefficents')
-    plt.xlabel('Update')
-    plt.ylabel('Weight')
-    plt.show()
+    # plt.figure()
+    # for i in range (0,timevarying_coefficents.shape[1]):
+    #     plt.plot(timevarying_coefficents[:,i], COLORCONSTANT[i], label = 'weight'+str(i))
+    # plt.legend()
+    # plt.title('Coefficents')
+    # plt.xlabel('Update')
+    # plt.ylabel('Weight')
+    # plt.show()
     '''
         Run the LMS algorithm using the x and z datasets and vary the learning rate to n
         a good value of where the LMS algorithm tracks the coecientvariations well.
@@ -239,29 +240,49 @@ if __name__ == "__main__":
     # Dereference weight_tracking_timevary_005 list
     timevarying_coeff_LMS = np.asarray(weight_tracking_timevary_005[0])
 
-    plt.figure()
-    for i in range (0,timevarying_coeff_LMS.shape[1]):
-        plt.plot(timevarying_coeff_LMS[:,i], COLORCONSTANT[i], label = 'weight'+str(i))
-    plt.legend()
-    plt.title('Coefficents')
-    plt.xlabel('Update')
-    plt.ylabel('Weight')
-    plt.show()
+    # plt.figure()
+    # for i in range (0,timevarying_coeff_LMS.shape[1]):
+    #     plt.plot(timevarying_coeff_LMS[:,i], COLORCONSTANT_2[i], label = 'weight'+str(i))
+    # plt.legend()
+    # plt.title('Coefficents')
+    # plt.xlabel('Update')
+    # plt.ylabel('Weight')
+    # plt.show()
 
     mismatched_x = getData(inputDatasetFile,'mismatched_x')     # size (600, 501)
-    mismatched_v = getData(inputDatasetFile,'mismatched_v')     
+    mismatched_v = getData(inputDatasetFile,'mismatched_v')     # size (600, 501, 3)
     mismatched_y = getData(inputDatasetFile,'mismatched_y')     # size (600, 501)
 
     MSE_mismatched_005,weight_mismatched_final_005,weight_tracking_mismatched_005 = lms(mismatched_v,mismatched_y,3,0.05)
     MSE_avg_mismatched_005 = averageData(MSE_mismatched_005,mismatched_v.shape[1])
-    plt.figure()
-    plt.plot(MSE_avg_mismatched_005,'r',label = 'mismatch, eta=0.05')
-    plt.legend()
-    plt.title('Learning Curve')
-    plt.xlabel('Updates')
-    plt.ylabel('MSE (dB)')    
-    plt.show()
+    # plt.figure()
+    # plt.plot(MSE_avg_mismatched_005,'r',label = 'mismatch, eta=0.05')
+    # plt.legend()
+    # plt.title('Learning Curve')
+    # plt.xlabel('Updates')
+    # plt.ylabel('MSE (dB)')    
+    # plt.show()
 
+    # Calculate correlation of input data and correlateion between input and output data 
     correlation_v_list = inputCorrelation(mismatched_v)
+    average_correlation_v = 0
+    for i in correlation_v_list:
+        average_correlation_v = average_correlation_v + i
+    average_correlation_v = np.asarray(average_correlation_v/len(correlation_v_list))
+    print(average_correlation_v)
     correlation_v_y_list = outputInputCorrelation(mismatched_v,mismatched_y)
-    # print(correlation_v_y_list[0])
+    average_correlation_v_y = 0
+    for i in correlation_v_y_list:
+        average_correlation_v_y = average_correlation_v_y + i
+    average_correlation_v_y = np.asarray(average_correlation_v_y/len(correlation_v_y_list))
+    print(average_correlation_v_y)
+    
+    average_mismatched_y = 0
+    for i in mismatched_y:
+        average_mismatched_y = average_mismatched_y + i
+    average_mismatched_y = average_mismatched_y/len(mismatched_y)
+    correlation_average_mismatched_y = np.dot(np.transpose(average_mismatched_y),np.transpose(average_mismatched_y))
+    # print(correlation_average_mismatched_y)
+    # Calculate llse
+    LLSE = correlation_average_mismatched_y - np.dot(average_correlation_v_y,np.dot(np.linalg.inv(average_correlation_v),average_correlation_v_y))
+    print(LLSE)

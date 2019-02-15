@@ -18,6 +18,8 @@ import matplotlib.pyplot as plt
         Split them into 50,000 images for training and 10,000 for validation.
 
         Mini_batches method
+
+        test_data method
 '''
 def dataPrep(filename):
     '''
@@ -77,6 +79,14 @@ def random_mini_batches(x, y, mini_batch_size = 100, seed = 0):
         mini_batches.append(mini_batch)
 
     return mini_batches
+
+def test_data_init(filename):
+    test_data = h5py.File(filename,'r')
+    keys = list(test_data.keys())
+    xdata = np.asarray(test_data[keys[0]])
+    ydata = np.asarray(test_data[keys[1]])
+
+    return xdata,ydata
 
 
 '''
@@ -598,6 +608,7 @@ def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, opt
     return parameters, costs, train_accuracies, val_accuracies
 
 
+
 if __name__ == "__main__":
     # Get trainning and validation data
     '''
@@ -610,29 +621,38 @@ if __name__ == "__main__":
     x_train, x_validation, y_train, y_validation = dataPrep('/Users/zifwang/Desktop/mnist_traindata.hdf5')
     x_train = x_train.T
     x_validation = x_validation.T
-    y_validation = y_validation.T
     y_train = y_train.T
+    y_validation = y_validation.T
+    # Define layers and activations here
     layers_dims = [x_train.shape[0], 200, 100, 10]
     activations = ['relu', 'relu', 'softmax']
     parameters, cost, train_acc, val_acc = model_train(x_train, y_train, x_validation, y_validation, layers_dims, 
                                                         activations, initialization = 'he', optimizer = "adam",
-                                                        learning_rate = 0.07, learning_rate_decay = True, mini_batch_size = 100, 
-                                                        beta = 0.9, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, verbose = True)
+                                                        learning_rate = 0.007, learning_rate_decay = True, mini_batch_size = 100, 
+                                                        beta = 0.9, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 10, verbose = True)
+
+    # testing data
+    x_test, y_test = test_data_init('mnist_testdata.hdf5')
+    test_acc = validation(x_test.T,y_test.T,parameters,activations)
+    print(test_acc)
+
+    # Save parameter
+
 
     # plot the cost
-    plt.plot(cost)
-    plt.ylabel('cost')
-    plt.xlabel('epochs')
-    plt.title("Learning rate = " + str(0.0007))
-    plt.show()
+    # plt.plot(cost)
+    # plt.ylabel('cost')
+    # plt.xlabel('epochs')
+    # plt.title("Learning rate = " + str(0.0007))
+    # plt.show()
 
-    # plot the accuracy
-    plt.plot(train_acc)
-    plt.plot(val_acc)
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
-    plt.show()
+    # # plot the accuracy
+    # plt.plot(train_acc)
+    # plt.plot(val_acc)
+    # plt.title('model accuracy')
+    # plt.ylabel('accuracy')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'validation'], loc='upper left')
+    # plt.show()
 
 

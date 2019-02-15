@@ -1,0 +1,459 @@
+'''
+    This program aims to recognize digits by MLP
+    Author: Zifan Wang
+    Data: 02/14/2019
+'''
+import numpy as np
+from sklearn.model_selection import train_test_split        # This function is used to sperate the training and validation data
+import h5py
+import math
+import matplotlib.pyplot as plt
+
+
+
+'''
+    Data Preparation:
+        In this training MLP: use mnist_traindata.hdf5 file which contains 60,000 images in the key 'xdata',
+        and their corresponding labels in the key 'ydata'. 
+        Split them into 50,000 images for training and 10,000 for validation.
+
+        Mini_batches method
+'''
+def dataPrep(filename):
+    '''
+        Implement the function to read in the data file.
+        Keys of the data file: 'xdata' and 'ydata'
+        Argument: the pwd/filename of the object
+        Returns: x_train, x_validation, y_train, y_validation
+    '''
+    mnist_traindata = h5py.File(filename,'r')
+    keys = list(mnist_traindata.keys())
+    xData = np.asarray(mnist_traindata[keys[0]])        # xdata is in the keys[0]
+    yData = np.asarray(mnist_traindata[keys[1]])        # xdata is in the keys[1]
+    x_train, x_validation, y_train, y_validation = train_test_split(xData,yData,
+                                                                    test_size = 0.16666,
+                                                                    random_state = 42)
+
+    return x_train, x_validation, y_train, y_validation
+
+def random_mini_batches(x, y, mini_batch_size = 100, seed = 0):
+    '''
+        Implement the function to create random minibatches from input train_x and train_y
+        Arguments:
+            x -- Input training data: train_x.shape == (input size, number of samples)
+            y -- GroundTruth Training data: train_y.shape == (output size, number of samples)
+            mini_batch_size -- size of the mini-batches, integer
+        Returns: 
+            mini_batch (a list): (mini_batch_x, mini_batch_y)
+    '''
+    mini_batches = []       # return list
+    np.random.seed(seed)
+    # number of training samples 
+    numSamples = x.shape[1]  
+    # output data shape in one sample
+    ySize = y.shape[0]
+
+    # Data shuffle
+    permutation = list(np.random.permutation(numSamples))
+    shuffled_X = x[:, permutation]
+    shuffled_Y = y[:, permutation].reshape((ySize,numSamples))
+    
+    # number of complete mini batches
+    num_complete_minibatches = math.floor(numSamples/mini_batch_size)
+    for k in range(0,num_complete_minibatches):
+        mini_batch_X = shuffled_X[:,k*mini_batch_size:(k+1)*mini_batch_size]
+        mini_batch_Y = shuffled_Y[:,k*mini_batch_size:(k+1)*mini_batch_size]
+
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
+
+    # Handle reset of mini batch (last mini_batch < mini_batch_size)
+    if numSamples % mini_batch_size != 0:
+        ### START CODE HERE ### (approx. 2 lines)
+        mini_batch_X = shuffled_X[:, num_complete_minibatches * mini_batch_size : numSamples]
+        mini_batch_Y = shuffled_Y[:, num_complete_minibatches * mini_batch_size : numSamples]
+        ### END CODE HERE ###
+        mini_batch = (mini_batch_X, mini_batch_Y)
+        mini_batches.append(mini_batch)
+
+    return mini_batches
+
+
+
+'''
+    Define activation function section:
+        1. relu 
+        2. tanh 
+        3. softmax -- used in the last layer
+'''
+def relu(x):
+    return np.maximum(0,x)
+
+def tanh(x):
+    return np.tanh(x)
+
+def softmax(x):
+    x_exp = np.exp(x)
+    x_sum = np.sum(x_exp, axis = 0, keepdims= True)
+
+    return x_exp/x_sum
+
+
+'''
+    Derivative of activation function section:
+        1. relu
+        2. tanh
+        3. softmax
+'''
+def relu_backward(dA):
+    return (dA > 0).astype(int)
+
+def tanh_backward(dA):
+    return 1 - tanh(dA)*tanh(dA)
+
+def softmax_backward(dA):
+    return 0
+
+'''
+    Coss function section：
+        1. Cross-entropy Cost
+        2. Quadratic cost (MSE)
+'''
+def crossEntropy_cost(x,y):
+    '''
+        Implement the cross entropy cost function
+        Arguments: x -- output from fully connected layer
+                   y -- ground truth label
+                   x and y have the same shape
+        Return: crossEntropyCost -- value of the cost function
+    '''
+    m = y.shape[1]
+    cost = -(np.multiply(np.log(x),y) + np.multiply(np.log(1-x),1-y))
+    crossEntropyCost = 1./m * np.sum(cost)
+
+    return crossEntropyCost
+
+def mse_cost(x,y):
+    '''
+        Implement the MSE function
+        Arguments: x -- output from fully connected layer
+                   y -- ground truth label
+                   x and y have the same shape
+        Return: cost -- value of the cost function
+    '''
+    m = y.shape[1]
+    cost = 1/m * np.sum(np.multiply(y-x,y-x), axis = 1)
+
+    return cost
+
+'''
+    initalization function sections: implement two initalization functions:
+    1. he initalization
+    2. random initalization
+'''
+def he_init(layerDims):
+    '''
+        Implement the weight and bias initalzation function use HE init.
+        Arguments:
+            layerDims (array or list type) -- contains the dimensions of each layer in nn
+        Return:
+            dicts (dictionary type) -- contains the weight and bias: 'W1', 'b1', 'W2', 'b2', ... , 'Wn', 'bn'
+                                                               W1 -- weight matrix of shape (layerDims[1], layerDims[0])
+                                                               b1 -- bias vector of shape (layerDims[1], 1) 
+    '''
+    np.random.seed(3)                   # random number generator
+    dicts = {}
+
+    for l in range(1, len(layerDims)):
+        dicts['W' + str(l)] = np.random.randn(layerDims[l],layerDims[l-1])*np.sqrt(2/layerDims[l-1])
+        dicts['b' + str(l)] = np.zeros((layerDims[l],1))
+ 
+    return dicts
+
+def random_init(layerDims):
+    '''
+        Implement the weight and bias initalzation function use random init.
+        Arguments:
+            layerDims (array or list type) -- contains the dimensions of each layer in nn
+        Return:
+            dicts (dictionary type) -- contains the weight and bias: 'W1', 'b1', 'W2', 'b2', ... , 'Wn', 'bn'
+                                                               W1 -- weight matrix of shape (layerDims[1], layerDims[0])
+                                                               b1 -- bias vector of shape (layerDims[1], 1) 
+    '''
+    np.random.seed(3)                   # random number generator
+    dicts = {}
+
+    for l in range(1, len(layerDims)):
+        dicts['W' + str(l)] = np.random.randn(layerDims[l],layerDims[l-1])*10
+        dicts['b' + str(l)] = np.zeros((layerDims[l],1))
+ 
+    return dicts
+
+def parameters_init(layerDims,initialization):
+    '''
+        Implement the weight and bias initalzation function
+        Arguments:
+            layerDims (array or list type) -- contains the dimensions of each layer in nn
+            initialzation (string type) -- method used to initialze the weight and bias.
+                                         1. initialzation = 'random'.   2. initialzation = 'he'
+        Return:
+            parameters (dictionary type) -- contains the weight and bias
+    '''
+    parameters = {}
+    
+    # Check whether initialization is valid
+    assert(initialization == 'he' or initialization == 'random')    # Error: unrecognize initalization
+ 
+    if(initialization == 'he'):
+        parameters = he_init(layerDims)
+    elif(initialization == 'random'):
+        parameters = random_init(layerDims)
+
+    return parameters
+
+
+'''
+    Optimizers section: Implement two optimizers.
+    1. Momentum optimizer
+    2. Adam optimizer
+'''
+def momentum_init(parameters):
+    '''
+        Momentum optimizer
+        Argument: 
+            parameters (dictionary type) -- with keys: 'W1','b1',...,'Wn','bn'
+        Return:
+            momentumDict (dictionary type): with keys: 'dW1','db1',...,'dWn','dbn'
+                                            and init. corresponding value to zero
+    '''
+    momentumDict = {}
+    
+    for l in range(len(parameters)//2):
+        momentumDict["dW" + str(l+1)] = np.zeros(parameters["W" + str(l+1)].shape)
+        momentumDict["db" + str(l+1)] = np.zeros(parameters["b" + str(l+1)].shape)
+    
+    return momentumDict
+
+def adam_init(parameters):
+    '''
+        Adam optimizer
+        Argument: 
+            parameters (dictionary type) -- with keys: 'W1','b1',...,'Wn','bn'
+        Returns: v(the exponentially weighted average of the gradient)
+                 s(the exponentially weighted average of the squared gradient)
+            v (dictionary type): with keys: 'dW1','db1',...,'dWn','dbn'
+                                            and init. corresponding value to zero
+            s (dictionary type): with keys: 'dW1','db1',...,'dWn','dbn'
+                                            and init. corresponding value to zero
+    '''
+    v = {}
+    s = {}
+    for l in range(len(parameters)//2):
+        v["dW" + str(l+1)] = np.zeros(parameters["W" + str(l+1)].shape)
+        v["db" + str(l+1)] = np.zeros(parameters["b" + str(l+1)].shape)
+        s["dW" + str(l+1)] = np.zeros(parameters["W" + str(l+1)].shape)
+        s["db" + str(l+1)] = np.zeros(parameters["b" + str(l+1)].shape)
+    
+    return v,s
+
+'''
+    Update paramenter section:
+        1. Stochastic Gradient Descent
+        2. Momentum optimizer Gradient Descent
+        3. Adam optimizer Gradient Descent
+'''
+def update_parameters_gd(parameters,gradients,learning_rate):
+    '''
+        Stochastic Gradient Descent:
+        Arguements:
+            parameters (dictionary type): contains weight and bias before updating
+            gradients (dictionary type): contains derivative of weight and bias
+            learning_rate (double type): learning rate
+        returns:
+            parameters (dictionary type): contains updated weight and bias
+    '''
+    for l in range(len(parameters)//2):
+        parameters["W" + str(l+1)] = parameters["W" + str(l+1)] - learning_rate * gradients['dW' + str(l+1)]
+        parameters["b" + str(l+1)] = parameters["b" + str(l+1)] - learning_rate * gradients['db' + str(l+1)]
+    
+    return parameters
+
+def update_parameters_momentum(parameters, gradients, momentumDict, beta, learning_rate):
+    '''
+        Momentum optimizer Gradient Descent:
+        Arguements:
+            parameters (dictionary type): contains weight and bias before updating
+            gradients (dictionary type): contains derivative of weight and bias
+            momentumDict (dictionary type): contains current velocities
+            beta: the Momentum Parameter
+            learning_rate (double type): learning rate
+        returns:
+            parameters (dictionary type): contains updated weight and bias
+            momentumDict (dictionary type): contains updated velocities
+    '''
+    for l in range(len(parameters)//2):
+        # velocities
+        momentumDict["dW" + str(l+1)] = beta*momentumDict["dW" + str(l+1)]+(1-beta)*gradients['dW' + str(l+1)]
+        momentumDict["db" + str(l+1)] = beta*momentumDict["db" + str(l+1)]+(1-beta)*gradients['db' + str(l+1)]
+        # update parameters
+        parameters["W" + str(l+1)] = parameters["W" + str(l+1)]-learning_rate*momentumDict["dW" + str(l+1)]
+        parameters["b" + str(l+1)] = parameters["b" + str(l+1)]-learning_rate*momentumDict["db" + str(l+1)]
+    
+    return parameters, momentumDict
+
+def update_parameters_adam(parameters, gradients, v, s, t,
+                           learning_rate = 0.01, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8):
+    '''
+        Momentum optimizer Gradient Descent:
+        Arguements:
+            parameters (dictionary type): contains weight and bias before updating
+            gradients (dictionary type): contains derivative of weight and bias
+            v (dictionary type): contains gradient
+            s (dictionary type): contains squared gradient
+            t: time
+            beta1: Exponential decay hyperparameter for the first moment estimates 
+            beta2: Exponential decay hyperparameter for the second moment estimates 
+            learning_rate (double type): learning rate
+            epsilon -- hyperparameter preventing division by zero in Adam updates
+        returns:
+            parameters (dictionary type): contains updated weight and bias
+            v (dictionary type): contains updated gradient
+            s (dictionary type): contains updated squared gradient
+    '''
+    v_bias_correction = {}
+    s_bias_correction = {}
+
+    for l in range(len(parameters)//2):
+        # Update gradient and square gradient
+        v["dW" + str(l+1)] = beta1 * v["dW" + str(l+1)] + (1-beta1) * gradients['dW' + str(l+1)]
+        v["db" + str(l+1)] = beta1 * v["db" + str(l+1)] + (1-beta1) * gradients['db' + str(l+1)]
+        s["dW" + str(l+1)] = beta2 * s["dW" + str(l+1)] + (1-beta2) * gradients['dW' + str(l+1)]**2
+        s["db" + str(l+1)] = beta2 * s["db" + str(l+1)] + (1-beta2) * gradients['db' + str(l+1)]**2
+        # Compute the bias corrections of v and s
+        v_bias_correction["dW" + str(l+1)] = v["dW" + str(l+1)] / (1-beta1 ** t)
+        v_bias_correction["db" + str(l+1)] = v["db" + str(l+1)] / (1-beta1 ** t)
+        s_bias_correction["dW" + str(l+1)] = s["dW" + str(l+1)] / (1-beta2 ** t)
+        s_bias_correction["db" + str(l+1)] = s["db" + str(l+1)] / (1-beta2 ** t)
+
+        # Update the parameter
+        parameters["W" + str(l+1)] = parameters["W" + str(l+1)] - learning_rate * v_bias_correction["dW" + str(l+1)] / (s_bias_correction["dW" + str(l+1)]**0.5 + epsilon)
+        parameters["b" + str(l+1)] = parameters["b" + str(l+1)] - learning_rate * v_bias_correction["db" + str(l+1)] / (s_bias_correction["db" + str(l+1)]**0.5 + epsilon)
+        
+    return parameters, v, s
+
+'''
+    Regularizer section
+        L2
+'''
+
+
+'''
+    Propagation section:
+        1. forward propagation
+        2. backward propagation
+'''
+def forward_propagation(x,parameters,activations):
+    '''
+        This function is for the forward propagation
+        Arguments:
+            x -- input dataset(in shape(inputSize,numOfSamples))
+            parameters -- weight and bias
+            activations -- a list of activation methods 
+        Returns:
+            cache -- contains all outputes of wx+b, outputes of activation, weightes, and biases
+            (z,a,w,b)
+    '''
+    # cache = []
+
+    # for i in range (len(parameters)//2):
+    #     z = np.dot(parameters["W"+str(i+1)],x) + parameters["b"+str(i+1)]   # linear
+    #     cache.append(z)             # append output of wx+b
+    #     # z to activation function 
+    #     if(activations[i] == 'relu'):
+    #         a = relu(z)
+    #         cache.append(a)
+    #     if(activations[i] == 'tanh'):
+    #         a = tanh(z)
+    #         cache.append(a)
+    #     if(activations[i] == 'softmax'):
+    #         a = softmax(z)
+    #         cache.append(z)
+    #     cache.append(parameters["W"+str(i)])
+    #     cache.append(parameters["b"+str(i)])
+
+    # Use three layer first
+     # retrieve parameters
+    W1 = parameters["W1"]
+    b1 = parameters["b1"]
+    W2 = parameters["W2"]
+    b2 = parameters["b2"]
+    W3 = parameters["W3"]
+    b3 = parameters["b3"]
+    
+    # LINEAR -> RELU -> LINEAR -> RELU -> LINEAR -> SIGMOID
+    z1 = np.dot(W1, x) + b1
+    a1 = relu(z1)
+    z2 = np.dot(W2, a1) + b2
+    a2 = relu(z2)
+    z3 = np.dot(W3, a2) + b3
+    a3 = softmax(z3)
+    
+    cache = (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3)
+    
+    return a3, cache
+
+
+def backward_propagation(x,y,cache,activations):
+    '''
+        This function is for the backward propagation
+        Arguments:
+            x -- input dataset(in shape(inputSize,numOfSamples))
+            y -- ground truth
+            cache -- cache output from forward propagation
+            activations -- a list of activation methods 
+        Returns:
+            gradients -- a gradient dictionary
+    '''
+    m = x.shape[1]
+
+    # for i in range(len(activations)-1,-1,-1):
+    #     if(activations[i] == 'softmax'):
+
+    (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3) = cache
+    
+    dz3 = 1./m * (a3 - y)
+    dW3 = np.dot(dz3, a2.T)
+    db3 = np.sum(dz3, axis=1, keepdims = True)
+    
+    da2 = np.dot(W3.T, dz3)
+    dz2 = np.multiply(da2, np.int64(a2 > 0))
+    dW2 = np.dot(dz2, a1.T)
+    db2 = np.sum(dz2, axis=1, keepdims = True)
+    
+    da1 = np.dot(W2.T, dz2)
+    dz1 = np.multiply(da1, np.int64(a1 > 0))
+    dW1 = np.dot(dz1, x.T)
+    db1 = np.sum(dz1, axis=1, keepdims = True)
+    
+    gradients = {"dz3": dz3, "dW3": dW3, "db3": db3,
+                 "da2": da2, "dz2": dz2, "dW2": dW2, "db2": db2,
+                 "da1": da1, "dz1": dz1, "dW1": dW1, "db1": db1}
+    
+    return gradients
+
+
+# if __name__ == "__main__":
+#     # Get trainning and validation data
+#     '''
+#         x_train.shape = (50000, 784)
+#         x_validation.shape = (10000, 784)
+#         y_train.shape = (50000, 10)
+#         y_validation.shape = (10000, 10)
+        
+#     '''
+#     # x_train, x_validation, y_train, y_validation = dataPrep('mnist_traindata.hdf5')
+
+#     # Init. parameters
+#     # param = parameters_init([784,200,100,10], initialization = 'a')
+
+

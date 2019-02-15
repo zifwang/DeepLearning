@@ -455,7 +455,7 @@ def backward_propagation(x,y,cache_dicts,activations):
             gradients["dW"+str(i+1)] = dW
             gradients["db"+str(i+1)] = db
         if(activations[i] == 'tanh'):
-            da = np.dot(cache_dicts["W"+str(i+2)].T,gradients["dW"+str(i+2)])
+            da = np.dot(cache_dicts["W"+str(i+2)].T,gradients["dz"+str(i+2)])
             dz = np.multiply(da,tanh_backward(cache_dicts["a"+str(i+1)]))
             dW = np.dot(dz, cache_dicts["a"+str(i)].T)
             db = np.sum(dz,axis=1, keepdims=True)
@@ -625,42 +625,45 @@ if __name__ == "__main__":
     y_validation = y_validation.T
     # Define layers and activations here
     layers_dims = [x_train.shape[0], 200, 100, 10]
-    activations = ['relu', 'relu', 'softmax']
+    activations = ['tanh', 'tanh', 'softmax']
     parameters, cost, train_acc, val_acc = model_train(x_train, y_train, x_validation, y_validation, layers_dims, 
                                                         activations, initialization = 'he', optimizer = "adam",
                                                         learning_rate = 0.007, learning_rate_decay = True, mini_batch_size = 100, 
-                                                        beta = 0.9, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 10, verbose = True)
+                                                        beta = 0.9, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, verbose = True)
 
     # testing data
     x_test, y_test = test_data_init('mnist_testdata.hdf5')
     test_acc = validation(x_test.T,y_test.T,parameters,activations)
     print('The accuracy for testing set is: ',test_acc)
 
-    # Save parameter
-    outfile = h5py.File('hw3p2.hdf5', 'w')
-    outfile.attrs['act'] = np.string_("relu")
-    outfile['w1'] = parameters['W1']
-    outfile['b1'] = parameters['b1']
-    outfile['w2'] = parameters['W2']
-    outfile['b2'] = parameters['b2']
-    outfile['w3'] = parameters['W3']
-    outfile['b3'] = parameters['b3']
-    outfile.close()
+    # # Save parameter
+    # outfile = h5py.File('hw3p2.hdf5', 'w')
+    # outfile.attrs['act'] = np.string_("relu")
+    # outfile['w1'] = parameters['W1']
+    # outfile['b1'] = parameters['b1']
+    # outfile['w2'] = parameters['W2']
+    # outfile['b2'] = parameters['b2']
+    # outfile['w3'] = parameters['W3']
+    # outfile['b3'] = parameters['b3']
+    # outfile.close()
 
     # plot the cost
     # plt.plot(cost)
     # plt.ylabel('cost')
     # plt.xlabel('epochs')
-    # plt.title("Learning rate = " + str(0.0007))
+    # plt.title("Learning rate = " + str(0.005))
     # plt.show()
 
-    # # plot the accuracy
-    # plt.plot(train_acc)
-    # plt.plot(val_acc)
-    # plt.title('model accuracy')
-    # plt.ylabel('accuracy')
-    # plt.xlabel('epoch')
-    # plt.legend(['train', 'validation'], loc='upper left')
-    # plt.show()
+    # plot the accuracy
+    plt.plot(train_acc)
+    plt.plot(val_acc)
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validation'], loc='upper left')
+    plt.show()
 
 
+#0.007 -> 0.9786,0.9561
+#0.005 -> 0.982
+#0.001 -> 0.9826

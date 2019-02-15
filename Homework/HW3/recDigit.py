@@ -634,10 +634,18 @@ if __name__ == "__main__":
     # testing data
     x_test, y_test = test_data_init('mnist_testdata.hdf5')
     test_acc = validation(x_test.T,y_test.T,parameters,activations)
-    print(test_acc)
+    print('The accuracy for testing set is: ',test_acc)
 
     # Save parameter
-
+    outfile = h5py.File('hw3p2.hdf5', 'w')
+    outfile.attrs['act'] = np.string_("relu")
+    outfile['w1'] = parameters['W1']
+    outfile['b1'] = parameters['b1']
+    outfile['w2'] = parameters['W2']
+    outfile['b2'] = parameters['b2']
+    outfile['w3'] = parameters['W3']
+    outfile['b3'] = parameters['b3']
+    outfile.close()
 
     # plot the cost
     # plt.plot(cost)

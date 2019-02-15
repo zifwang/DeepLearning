@@ -103,6 +103,7 @@ def softmax(x):
         1. relu
         2. tanh
         3. softmax
+        4. cross_entropy with softmax
 '''
 def relu_backward(dA):
     return (dA > 0).astype(int)
@@ -111,7 +112,13 @@ def tanh_backward(dA):
     return 1 - tanh(dA)*tanh(dA)
 
 def softmax_backward(dA):
-    return 0
+    s = dA.reshape(-1,1)
+    return np.diagflat(s) - np.dot(s, s.T)
+
+def cross_entropy_softmax(x,y):
+    m = y.shape[1]
+    return 1./m * (x - y)
+
 
 '''
     Coss function section：
@@ -187,7 +194,7 @@ def random_init(layerDims):
     dicts = {}
 
     for l in range(1, len(layerDims)):
-        dicts['W' + str(l)] = np.random.randn(layerDims[l],layerDims[l-1])*10
+        dicts['W' + str(l)] = np.random.randn(layerDims[l],layerDims[l-1])*0.03
         dicts['b' + str(l)] = np.zeros((layerDims[l],1))
  
     return dicts
@@ -363,84 +370,115 @@ def forward_propagation(x,parameters,activations):
             parameters -- weight and bias
             activations -- a list of activation methods 
         Returns:
-            cache -- contains all outputes of wx+b, outputes of activation, weightes, and biases
-            (z,a,w,b)
+            cache_dicts -- contains all outputes of wx+b, outputes of activation, weightes, and biases
+            keys(z,a,W,b)
     '''
-    # cache = []
+    cache_dicts = {}
+    cache_dicts['a0'] = x
+    a = x
+    for i in range (len(parameters)//2):
+        z = np.dot(parameters["W"+str(i+1)],a) + parameters["b"+str(i+1)]   # linear
+        cache_dicts["z"+str(i+1)] = z          # append output of wx+b
+        # z to activation function 
+        if(activations[i] == 'relu'):
+            a = relu(z)
+            cache_dicts["a"+str(i+1)] = a
+        if(activations[i] == 'tanh'):
+            a = tanh(z)
+            cache_dicts["a"+str(i+1)] = a
+        if(activations[i] == 'softmax'):
+            a = softmax(z)
+            cache_dicts["a"+str(i+1)] = a
+        cache_dicts["W"+str(i+1)] = parameters["W"+str(i+1)]
+        cache_dicts["b"+str(i+1)] = parameters["b"+str(i+1)]
 
-    # for i in range (len(parameters)//2):
-    #     z = np.dot(parameters["W"+str(i+1)],x) + parameters["b"+str(i+1)]   # linear
-    #     cache.append(z)             # append output of wx+b
-    #     # z to activation function 
-    #     if(activations[i] == 'relu'):
-    #         a = relu(z)
-    #         cache.append(a)
-    #     if(activations[i] == 'tanh'):
-    #         a = tanh(z)
-    #         cache.append(a)
-    #     if(activations[i] == 'softmax'):
-    #         a = softmax(z)
-    #         cache.append(z)
-    #     cache.append(parameters["W"+str(i)])
-    #     cache.append(parameters["b"+str(i)])
-
-    # Use three layer first
-    # retrieve parameters
-    W1 = parameters["W1"]
-    b1 = parameters["b1"]
-    W2 = parameters["W2"]
-    b2 = parameters["b2"]
-    W3 = parameters["W3"]
-    b3 = parameters["b3"]
+    # # Use three layer first
+    # # retrieve parameters
+    # W1 = parameters["W1"]
+    # b1 = parameters["b1"]
+    # W2 = parameters["W2"]
+    # b2 = parameters["b2"]
+    # W3 = parameters["W3"]
+    # b3 = parameters["b3"]
     
-    # LINEAR -> RELU -> LINEAR -> RELU -> LINEAR -> SOFTMAX
-    z1 = np.dot(W1, x) + b1
-    a1 = relu(z1)
-    z2 = np.dot(W2, a1) + b2
-    a2 = relu(z2)
-    z3 = np.dot(W3, a2) + b3
-    a3 = softmax(z3)
+    # # LINEAR -> RELU -> LINEAR -> RELU -> LINEAR -> SOFTMAX
+    # z1 = np.dot(W1, x) + b1
+    # a1 = relu(z1)
+    # z2 = np.dot(W2, a1) + b2
+    # a2 = relu(z2)
+    # z3 = np.dot(W3, a2) + b3
+    # a3 = softmax(z3)
     
-    cache = (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3)
+    # cache = (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3)
     
-    return a3, cache
+    return cache_dicts["a"+str(len(parameters)//2)],cache_dicts
+    # return a3,cache
 
 
-def backward_propagation(x,y,cache,activations):
+def backward_propagation(x,y,cache_dicts,activations):
     '''
         This function is for the backward propagation
         Arguments:
             x -- input dataset(in shape(inputSize,numOfSamples))
             y -- ground truth
-            cache -- cache output from forward propagation
+            cache_dicts -- cache_dicts output from forward propagation
             activations -- a list of activation methods 
         Returns:
             gradients -- a gradient dictionary
     '''
-    m = x.shape[1]
+    gradients = {}
+    for i in range(len(activations)-1,-1,-1):
+        if(activations[i] == 'softmax'):
+            dz = cross_entropy_softmax(cache_dicts["a"+str(i+1)],y)
+            dW = np.dot(dz, cache_dicts["a"+str(i)].T)
+            db = np.sum(dz,axis=1, keepdims=True)
+            gradients["dz"+str(i+1)] = dz
+            gradients["dW"+str(i+1)] = dW
+            gradients["db"+str(i+1)] = db
+        if(activations[i] == 'relu'):
+            da = np.dot(cache_dicts["W"+str(i+2)].T,gradients["dz"+str(i+2)])
+            dz = np.multiply(da,relu_backward(cache_dicts["a"+str(i+1)]))
+            dW = np.dot(dz, cache_dicts["a"+str(i)].T)
+            db = np.sum(dz,axis=1, keepdims=True)
+            gradients["da"+str(i+1)] = da
+            gradients["dz"+str(i+1)] = dz
+            gradients["dW"+str(i+1)] = dW
+            gradients["db"+str(i+1)] = db
+        if(activations[i] == 'tanh'):
+            da = np.dot(cache_dicts["W"+str(i+2)].T,gradients["dW"+str(i+2)])
+            dz = np.multiply(da,tanh_backward(cache_dicts["a"+str(i+1)]))
+            dW = np.dot(dz, cache_dicts["a"+str(i)].T)
+            db = np.sum(dz,axis=1, keepdims=True)
+            gradients["da"+str(i+1)] = da
+            gradients["dz"+str(i+1)] = dz
+            gradients["dW"+str(i+1)] = dW
+            gradients["db"+str(i+1)] = db
 
-    # for i in range(len(activations)-1,-1,-1):
-    #     if(activations[i] == 'softmax'):
+    # m = x.shape[1]
+    # (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3) = cache_dicts
+    
+    # dz3 = 1./m * (a3 - y)
+    # dW3 = np.dot(dz3, a2.T)
+    # db3 = np.sum(dz3, axis=1, keepdims = True)
 
-    (z1, a1, W1, b1, z2, a2, W2, b2, z3, a3, W3, b3) = cache
+    # da2 = np.dot(W3.T, dz3)
+    # dz2 = np.multiply(da2, np.int64(a2 > 0))
+    # dW2 = np.dot(dz2, a1.T)
+    # db2 = np.sum(dz2, axis=1, keepdims = True)
+    # print('da2.shape:', da2.shape)                #100,100
+    # print('a2.shape:', np.int64(a2 > 0).shape)    #100,100
+
+
+    # da1 = np.dot(W2.T, dz2)
+    # dz1 = np.multiply(da1, np.int64(a1 > 0))
+    # dW1 = np.dot(dz1, x.T)
+    # db1 = np.sum(dz1, axis=1, keepdims = True)
+    # print('da1.shape:', da1.shape)                #200,100
+    # print('a1.shape:', np.int64(a1 > 0).shape)    #200,100
     
-    dz3 = 1./m * (a3 - y)
-    dW3 = np.dot(dz3, a2.T)
-    db3 = np.sum(dz3, axis=1, keepdims = True)
-    
-    da2 = np.dot(W3.T, dz3)
-    dz2 = np.multiply(da2, np.int64(a2 > 0))
-    dW2 = np.dot(dz2, a1.T)
-    db2 = np.sum(dz2, axis=1, keepdims = True)
-    
-    da1 = np.dot(W2.T, dz2)
-    dz1 = np.multiply(da1, np.int64(a1 > 0))
-    dW1 = np.dot(dz1, x.T)
-    db1 = np.sum(dz1, axis=1, keepdims = True)
-    
-    gradients = {"dz3": dz3, "dW3": dW3, "db3": db3,
-                 "da2": da2, "dz2": dz2, "dW2": dW2, "db2": db2,
-                 "da1": da1, "dz1": dz1, "dW1": dW1, "db1": db1}
+    # gradients = {"dz3": dz3, "dW3": dW3, "db3": db3,
+    #              "da2": da2, "dz2": dz2, "dW2": dW2, "db2": db2,
+    #              "da1": da1, "dz1": dz1, "dW1": dW1, "db1": db1}
     
     return gradients
 
@@ -457,7 +495,7 @@ def predict(x,parameters,activations):
             Predicted label of example (image).
 
     '''
-    a3, cache = forward_propagation(x,parameters,activations)
+    a3, _ = forward_propagation(x,parameters,activations)
     return a3
 
 '''
@@ -480,7 +518,7 @@ def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, opt
           beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, print_cost = True):
     '''
     '''
-    L = len(layersDims)         # number of layers in nn
+    # L = len(layersDims)         # number of layers in nn
     costs = []                  # list to track the cost
     t = 0                       # adam t parameter
     seed = 10
@@ -556,9 +594,9 @@ if __name__ == "__main__":
     x_validation = x_validation.T
     y_validation = y_validation.T
     y_train = y_train.T
-    layers_dims = [x_train.shape[0], 200, 100, 10]
-    activations = ['relu','relu','softmax']
-    parameters = model_train(x_train, y_train, x_validation, y_validation, layers_dims, activations, initialization = 'he', optimizer = "momentum")
+    layers_dims = [x_train.shape[0], 200, 100, 50, 10]
+    activations = ['relu','tanh','relu','softmax']
+    parameters = model_train(x_train, y_train, x_validation, y_validation, layers_dims, activations, initialization = 'random', optimizer = "adam")
     
 
 

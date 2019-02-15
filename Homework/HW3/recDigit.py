@@ -503,23 +503,40 @@ def predict(x,parameters,activations):
 '''
 def validation(x,y,parameters,activations):
     predict_result = predict(x,parameters,activations)
-    correct = 0
+    numCorrect = 0
     y = y.T
     predict_result = predict_result.T
     for i in range(y.shape[0]):
         if(np.argmax(y[i]) == np.argmax(predict_result[i])):
-            correct = correct + 1
-    return correct
+            numCorrect = numCorrect + 1
+    return numCorrect/y.shape[0]
+
+'''
+    Training accuracy
+'''
+def train_accuracy(train_result,groundTruth):
+    numCorrect = 0
+    groundTruth = groundTruth.T
+    train_result = train_result.T
+    for i in range(groundTruth.shape[0]):
+        if(np.argmax(groundTruth[i]) == np.argmax(train_result[i])):
+            numCorrect = numCorrect + 1
+
+    return numCorrect/groundTruth.shape[0]
+
+
 
 '''
     Training process
 '''
-def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, optimizer, learning_rate = 0.0007, mini_batch_size = 100, beta = 0.9,
-          beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, print_cost = True):
+def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, optimizer, learning_rate = 0.0007, learning_rate_decay = True, mini_batch_size = 100, beta = 0.9,
+          beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, verbose = True):
     '''
     '''
-    # L = len(layersDims)         # number of layers in nn
+    # L = len(layersDims)       # number of layers in nn
     costs = []                  # list to track the cost
+    train_accuracies = []       # list to track the train accuracies
+    val_accuracies = []         # list to track the val accuracies
     t = 0                       # adam t parameter
     seed = 10
 
@@ -539,16 +556,19 @@ def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, opt
         seed = seed + 1
         minibatches = random_mini_batches(X, Y, mini_batch_size, seed)
 
+        if(learning_rate_decay and epoch == num_epochs//2):
+            learning_rate = learning_rate/2
+
         for minibatch in minibatches:
 
             # Select a minibatch
             (minibatch_X, minibatch_Y) = minibatch
 
             # Forward propagation
-            a3, caches = forward_propagation(minibatch_X, parameters,activations)
+            train_result, caches = forward_propagation(minibatch_X, parameters,activations)
 
             # Compute cost
-            cost = crossEntropy_cost(a3, minibatch_Y)
+            cost = crossEntropy_cost(train_result, minibatch_Y)
 
             # Backward propagation
             grads = backward_propagation(minibatch_X, minibatch_Y, caches, activations)
@@ -563,21 +583,19 @@ def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, opt
                 parameters, v, s = update_parameters_adam(parameters, grads, v, s,
                                                                t, learning_rate, beta1, beta2, epsilon)
 
-        # Print the cost 
-        print ("Cost after epoch %i: %f" %(epoch, cost))
+        # Calculate train_accuracy and val_accuracy after each epoch
+        train_accuracy = validation(X,Y,parameters,activations)
+        train_accuracies.append(train_accuracy)
+        val_accuracy = validation(x_val,y_val,parameters,activations)
+        val_accuracies.append(val_accuracy)
         costs.append(cost)
-        result = validation(x_val,y_val,parameters,activations)
-        print(result)
 
-    
-    # plot the cost
-    plt.plot(costs)
-    plt.ylabel('cost')
-    plt.xlabel('epochs')
-    plt.title("Learning rate = " + str(learning_rate))
-    plt.show()
+        if(verbose):
+            # Print the cost 
+            print("Epoch %i/%i"%(epoch,num_epochs))
+            print("-loss: %f - training_acc: %f - validation_acc: %f"%(cost,train_accuracy,val_accuracy))
 
-    return parameters
+    return parameters, costs, train_accuracies, val_accuracies
 
 
 if __name__ == "__main__":
@@ -594,9 +612,27 @@ if __name__ == "__main__":
     x_validation = x_validation.T
     y_validation = y_validation.T
     y_train = y_train.T
-    layers_dims = [x_train.shape[0], 200, 100, 50, 10]
-    activations = ['relu','tanh','relu','softmax']
-    parameters = model_train(x_train, y_train, x_validation, y_validation, layers_dims, activations, initialization = 'random', optimizer = "adam")
-    
+    layers_dims = [x_train.shape[0], 200, 100, 10]
+    activations = ['relu', 'relu', 'softmax']
+    parameters, cost, train_acc, val_acc = model_train(x_train, y_train, x_validation, y_validation, layers_dims, 
+                                                        activations, initialization = 'he', optimizer = "adam",
+                                                        learning_rate = 0.07, learning_rate_decay = True, mini_batch_size = 100, 
+                                                        beta = 0.9, beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, verbose = True)
+
+    # plot the cost
+    plt.plot(cost)
+    plt.ylabel('cost')
+    plt.xlabel('epochs')
+    plt.title("Learning rate = " + str(0.0007))
+    plt.show()
+
+    # plot the accuracy
+    plt.plot(train_acc)
+    plt.plot(val_acc)
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'validation'], loc='upper left')
+    plt.show()
 
 

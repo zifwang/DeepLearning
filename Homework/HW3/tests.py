@@ -1,7 +1,51 @@
-from testCases import *
+from testCases_Propagation import *
+from testCases_Optimization import *
+
 from recDigit import random_mini_batches
 from recDigit import momentum_init, adam_init
 from recDigit import update_parameters_gd, update_parameters_momentum, update_parameters_adam
+
+
+
+def test_forward():
+    X, parameters = L_model_forward_test_case_2hidden()
+    AL, caches = forward_propagation(X, parameters)
+    print("AL = " + str(AL))
+    print("Length of caches list = " + str(len(caches)))caches
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 '''

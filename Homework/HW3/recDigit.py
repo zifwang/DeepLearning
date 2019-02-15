@@ -79,7 +79,6 @@ def random_mini_batches(x, y, mini_batch_size = 100, seed = 0):
     return mini_batches
 
 
-
 '''
     Define activation function section:
         1. relu 
@@ -95,7 +94,7 @@ def tanh(x):
 def softmax(x):
     x_exp = np.exp(x)
     x_sum = np.sum(x_exp, axis = 0, keepdims= True)
-
+    
     return x_exp/x_sum
 
 
@@ -156,10 +155,14 @@ def he_init(layerDims):
         Implement the weight and bias initalzation function use HE init.
         Arguments:
             layerDims (array or list type) -- contains the dimensions of each layer in nn
-        Return:
+        Return: [784,200,100,10]
             dicts (dictionary type) -- contains the weight and bias: 'W1', 'b1', 'W2', 'b2', ... , 'Wn', 'bn'
                                                                W1 -- weight matrix of shape (layerDims[1], layerDims[0])
                                                                b1 -- bias vector of shape (layerDims[1], 1) 
+                                                               W2 -- weight matrix of shape (layerDims[2], layerDims[1])
+                                                               b2 -- bias vector of shape (layerDims[2], 1) 
+                                                               W3 -- weight matrix of shape (layerDims[3], layerDims[2])
+                                                               b3 -- bias vector of shape (layerDims[3], 1) 
     '''
     np.random.seed(3)                   # random number generator
     dicts = {}
@@ -382,7 +385,7 @@ def forward_propagation(x,parameters,activations):
     #     cache.append(parameters["b"+str(i)])
 
     # Use three layer first
-     # retrieve parameters
+    # retrieve parameters
     W1 = parameters["W1"]
     b1 = parameters["b1"]
     W2 = parameters["W2"]
@@ -390,7 +393,7 @@ def forward_propagation(x,parameters,activations):
     W3 = parameters["W3"]
     b3 = parameters["b3"]
     
-    # LINEAR -> RELU -> LINEAR -> RELU -> LINEAR -> SIGMOID
+    # LINEAR -> RELU -> LINEAR -> RELU -> LINEAR -> SOFTMAX
     z1 = np.dot(W1, x) + b1
     a1 = relu(z1)
     z2 = np.dot(W2, a1) + b2
@@ -441,19 +444,121 @@ def backward_propagation(x,y,cache,activations):
     
     return gradients
 
+'''
+    prediction method
+'''
+def predict(x,parameters,activations):
+    '''
+        Predict the label of a single test example (image).
 
-# if __name__ == "__main__":
-#     # Get trainning and validation data
-#     '''
-#         x_train.shape = (50000, 784)
-#         x_validation.shape = (10000, 784)
-#         y_train.shape = (50000, 10)
-#         y_validation.shape = (10000, 10)
+        Arguments:
+            x : numpy.array
+        Returns: int
+            Predicted label of example (image).
+
+    '''
+    a3, cache = forward_propagation(x,parameters,activations)
+    return a3
+
+'''
+    Validation method
+'''
+def validation(x,y,parameters,activations):
+    predict_result = predict(x,parameters,activations)
+    correct = 0
+    y = y.T
+    predict_result = predict_result.T
+    for i in range(y.shape[0]):
+        if(np.argmax(y[i]) == np.argmax(predict_result[i])):
+            correct = correct + 1
+    return correct
+
+'''
+    Training process
+'''
+def model_train(X, Y, x_val, y_val, layersDims, activations, initialization, optimizer, learning_rate = 0.0007, mini_batch_size = 100, beta = 0.9,
+          beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8, num_epochs = 50, print_cost = True):
+    '''
+    '''
+    L = len(layersDims)         # number of layers in nn
+    costs = []                  # list to track the cost
+    t = 0                       # adam t parameter
+    seed = 10
+
+    # Initialize parameters
+    parameters = parameters_init(layersDims,initialization)
+
+    # Initialize the optimizer
+    if optimizer == "gd":
+        pass # no initialization required for gradient descent
+    elif optimizer == "momentum":
+        v = momentum_init(parameters)
+    elif optimizer == "adam":
+        v, s = adam_init(parameters)
+
+    for epoch in range(num_epochs):
+        # Define the random minibatches. 
+        seed = seed + 1
+        minibatches = random_mini_batches(X, Y, mini_batch_size, seed)
+
+        for minibatch in minibatches:
+
+            # Select a minibatch
+            (minibatch_X, minibatch_Y) = minibatch
+
+            # Forward propagation
+            a3, caches = forward_propagation(minibatch_X, parameters,activations)
+
+            # Compute cost
+            cost = crossEntropy_cost(a3, minibatch_Y)
+
+            # Backward propagation
+            grads = backward_propagation(minibatch_X, minibatch_Y, caches, activations)
+
+            # Update parameters
+            if optimizer == "gd":
+                parameters = update_parameters_gd(parameters, grads, learning_rate)
+            elif optimizer == "momentum":
+                parameters, v = update_parameters_momentum(parameters, grads, v, beta, learning_rate)
+            elif optimizer == "adam":
+                t = t + 1 # Adam counter
+                parameters, v, s = update_parameters_adam(parameters, grads, v, s,
+                                                               t, learning_rate, beta1, beta2, epsilon)
+
+        # Print the cost 
+        print ("Cost after epoch %i: %f" %(epoch, cost))
+        costs.append(cost)
+        result = validation(x_val,y_val,parameters,activations)
+        print(result)
+
+    
+    # plot the cost
+    plt.plot(costs)
+    plt.ylabel('cost')
+    plt.xlabel('epochs')
+    plt.title("Learning rate = " + str(learning_rate))
+    plt.show()
+
+    return parameters
+
+
+if __name__ == "__main__":
+    # Get trainning and validation data
+    '''
+        x_train.shape = (50000, 784)
+        x_validation.shape = (10000, 784)
+        y_train.shape = (50000, 10)
+        y_validation.shape = (10000, 10)
         
-#     '''
-#     # x_train, x_validation, y_train, y_validation = dataPrep('mnist_traindata.hdf5')
-
-#     # Init. parameters
-#     # param = parameters_init([784,200,100,10], initialization = 'a')
+    '''
+    x_train, x_validation, y_train, y_validation = dataPrep('/Users/zifwang/Desktop/mnist_traindata.hdf5')
+    x_train = x_train.T
+    x_validation = x_validation.T
+    y_validation = y_validation.T
+    y_train = y_train.T
+    layers_dims = [x_train.shape[0], 200, 100, 10]
+    activations = ['relu','relu','softmax']
+    parameters = model_train(x_train, y_train, x_validation, y_validation, layers_dims, activations, initialization = 'he', optimizer = "momentum")
+    
 
 

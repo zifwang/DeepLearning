@@ -13,9 +13,9 @@ def get_images(location):
     """
     images = {}
     for filename in os.listdir(location):
-        img = cv2.imread(os.path.join(location,filename))   # read image by opencv library
-        if img is not None:
-            img_mod = cv2.resize(img,(350,350))             # resize image to 350*350*3
+        img = cv2.imread(os.path.join(location,filename),cv2.IMREAD_GRAYSCALE)   # read image by opencv library
+        if img is not None and filename != '12398.jpg':
+            img_mod = cv2.resize(img,(128,128))             # resize image to 350*350*3
             images[filename] = img_mod
     return images
 
@@ -31,13 +31,21 @@ def get_ground_truth(location):
 
     # get data frame by pandas library
     df = pd.read_csv(location,names=['name','emotions'],header=None)
-    df_emotion = df.loc[:,'emotions']
-    emotions = list(df_emotion)
+    # df_emotion = df.loc[:,'emotions']
+    # emotions = list(df_emotion)
     emotionList = []
     # Generate one hot label encoder
-    for emotion in emotions:
-        if emotion not in emotionList:
-            emotionList.append(emotion)
+    # for emotion in emotions:
+    #     if emotion not in emotionList:
+    #         emotionList.append(emotion)
+    emotionList.append('anger')
+    emotionList.append('contempt')
+    emotionList.append('disgust')
+    emotionList.append('fear')
+    emotionList.append('happiness')
+    emotionList.append('neutral')
+    emotionList.append('sadness')
+    emotionList.append('surprise')
     oneHotEncoder = np.identity(len(emotionList))
     
     # Generate emotionDic
@@ -45,7 +53,7 @@ def get_ground_truth(location):
     for emotion in emotionList:
         emotionDic[emotion] = oneHotEncoder[i,:]
         i += 1
-    
+
     # Generate ground_truth_dic using one hot labeling
     for _,row in df.iterrows():
         ground_truth_dic[row['name']] = emotionDic[row['emotions']]
@@ -63,6 +71,32 @@ def generate_xy_data(x,y):
     for key,value in x.items():
         x_list.append(value)
         y_list.append(y[key])
+        # Data Agumentation
+        img = value.copy()
+        img = cv2.flip(value,0)
+        x_list.append(img)
+        y_list.append(y[key])
+
+        img = cv2.flip(value,1)
+        x_list.append(img)
+        y_list.append(y[key])
+
+        img = cv2.rotate(value, rotateCode=cv2.ROTATE_90_CLOCKWISE)
+        x_list.append(img)
+        y_list.append(y[key])
+
+        img = cv2.rotate(value, rotateCode=cv2.ROTATE_90_CLOCKWISE)
+        img = cv2.flip(img, flipCode=1)
+        x_list.append(img)
+        y_list.append(y[key])
+
+        img = cv2.rotate(value, rotateCode=cv2.ROTATE_180)
+        x_list.append(img)
+        y_list.append(y[key])
+
+        img = cv2.rotate(value, rotateCode=cv2.ROTATE_90_COUNTERCLOCKWISE)
+        x_list.append(img)
+        y_list.append(y[key])
 
     # Change to numpy type
     inputData = np.asarray(x_list)
@@ -79,11 +113,13 @@ def h5py_training_generator(directory_1,dictionary_2):
     """
     images = get_images(directory_1)   # most image are in 3*350*350
     labels, emotionDic = get_ground_truth(dictionary_2)
+    # print(emotionDic)
     xData, yData = generate_xy_data(images,labels)
     hf = h5py.File('emotionData.h5','w')
     hf.create_dataset('emotion',data = xData)
     hf.create_dataset('label',data = yData)
     hf.close()
+    np.savez_compressed('emotionData.npz',key1=xData,key2=yData)
     f = open('emotionDics.pkl','wb')
     pickle.dump(emotionDic,f)
     f.close()

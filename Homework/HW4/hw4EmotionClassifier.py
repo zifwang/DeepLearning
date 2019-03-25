@@ -59,10 +59,10 @@ if __name__ == "__main__":
         bias_constraint: Constraint function applied to the bias vector
     """
     # Convolution neural network setting
-    model.add(Conv2D(filters=64, kernel_size=(3,3), strides=(1,1), padding='same', data_format='channels_last', activation='relu', input_shape=(height,width,channel)))
-    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Conv2D(filters=32, kernel_size=(3,3), strides=(1,1), padding='same', data_format='channels_last', activation='relu', input_shape=(height,width,channel)))
+    # model.add(MaxPooling2D(pool_size=(2,2)))
 
-    model.add(Conv2D(filters=128,kernel_size=(3,3), strides=(1,1), padding='same', activation='relu'))
+    model.add(Conv2D(filters=16,kernel_size=(3,3), strides=(1,1), padding='valid', activation='relu'))
     model.add(MaxPooling2D(pool_size=(2,2)))
 
     # model.add(Conv2D(filters=128,kernel_size=(5,5), strides=(1,1), padding='same', activation='relu'))
@@ -70,13 +70,13 @@ if __name__ == "__main__":
 
     # MLP nerual network setting
     model.add(Flatten())
-    model.add(Dense(256))
+    model.add(Dense(64))
     model.add(Activation('relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(64,kernel_regularizer=regularizers.l2(0.0001)))
+    model.add(Dense(32,kernel_regularizer=regularizers.l2(0.0001)))
     model.add(Activation('relu'))
-    model.add(Dense(32))
-    model.add(Activation('relu'))
+    # model.add(Dense(32))
+    # model.add(Activation('relu'))
     model.add(Dense(numClass,kernel_regularizer=regularizers.l2(0.0001)))
     model.add(Activation('softmax'))
 

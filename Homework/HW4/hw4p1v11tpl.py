@@ -11,15 +11,14 @@ batch_size = 4
 #### CLIP-BEGIN
 #### DO NOT MODIFY ABOVE THIS LINE
 
-modelUrl = 'https://s3-us-west-1.amazonaws.com/zifwangee599hw4/model.h5'
+modelUrl = 'https://s3-us-west-1.amazonaws.com/zifwangee599hw4/model_64_1.h5'
 
-test_datagen = ImageDataGenerator(
-    rescale=1./255)
+test_datagen = ImageDataGenerator()
 
 test_generator = test_datagen.flow_from_directory(
     './data-test', # DO NOT EDIT THIS LINE
     color_mode='grayscale',
-    target_size=(32, 32),
+    target_size=(64, 64),
     batch_size=batch_size, # DO NOT EDIT THIS LINE
     class_mode='categorical')
 

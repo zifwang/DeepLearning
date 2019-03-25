@@ -15,7 +15,7 @@ def get_images(location):
     for filename in os.listdir(location):
         img = cv2.imread(os.path.join(location,filename),cv2.IMREAD_GRAYSCALE)   # read image by opencv library
         if img is not None and filename != '12398.jpg':
-            img_mod = cv2.resize(img,(128,128))             # resize image to 350*350*3
+            img_mod = cv2.resize(img,(64,64))             # resize image to 128*128*3
             images[filename] = img_mod
     return images
 

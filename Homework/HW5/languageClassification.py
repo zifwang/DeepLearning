@@ -23,15 +23,12 @@ def load_file(fileName):
 
 	return X_train,y_train
 
-密码：pm437c
-
-
 def create_rnn_model(rnnModel,type,inputSize):
 	"""
 		Function to create my rnn neural network
 		Arguments: rnnModel: keras rnnModel
 				   type: string input: choose model: GRU, LSTM
-				   inputSize: training input size with shape (number of data, time_length,features)
+				   inputSize: training input size with shape (time_length,features)
 		Return: model after set up
 	"""
 	# https://machinelearningmastery.com/return-sequences-and-return-states-for-lstms-in-keras/ explain return_sequences & return_state
@@ -44,13 +41,13 @@ def create_rnn_model(rnnModel,type,inputSize):
 			bias_initializer='zeros', kernel_regularizer=None, recurrent_regularizer=None, 
 			bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, 
 			recurrent_constraint=None, bias_constraint=None, return_sequences=False, 
-			return_state=False, stateful=False))
+			return_state=False, stateful=False, input_shape=inputSize))
 
 	if(type == 'LSTM'):
 		rnnModel.add(keras.layers.CuDNNLSTM(units=10, kernel_initializer='random_uniform', recurrent_initializer='orthogonal', 
 			bias_initializer='zeros', unit_forget_bias=True, kernel_regularizer=None, recurrent_regularizer=None, 
 			bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, 
-			return_sequences=False, return_state=False, stateful=False))
+			return_sequences=False, return_state=False, stateful=False, input_shape=inputSize))
 
 	rnnModel.add(Dense(3,activation='softmax'))
 	rnnModel.compile(loss='categorical_crossentropy',optimizer='Adam',metrics=['accuracy'])
@@ -67,13 +64,14 @@ if __name__ == '__main__':
 	else:
 		print('trainingData.hdf5 exists.')
 	X_train, y_train = load_file('./trainingData.hdf5')
+	numofData,time_length,features = X_train.shape
 
 	rnnModel = Sequential()
-	rnnModel = create_rnn_model(rnnModel)
+	rnnModel = create_rnn_model(rnnModel,'GRU',(time_length,features))
 	# Print model summary
 	rnnModel.summary()
 	# train
-	rnnModel.fit(x=x_train,
+	rnnModel.fit(x=X_train,
           y=y_train, 
           batch_size=32, 
           epochs=10, 
@@ -81,8 +79,7 @@ if __name__ == '__main__':
           validation_split=0.15,
           shuffle=True
           )
-
-	# Save Model
+    # Save Model
     rnnModel.save('my_rnn_model.h5')
     print('Save Model to Disk')
 

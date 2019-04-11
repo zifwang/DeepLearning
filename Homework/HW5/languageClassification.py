@@ -2,6 +2,7 @@ import os
 import numpy as np
 import h5py
 from data_generator import data_generator_main
+from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Flatten
@@ -37,17 +38,17 @@ def create_rnn_model(rnnModel,type,inputSize):
 	# when need to access the sequence of hidden state outputs, set return_sequences = True 
 	# when predicting a sequence of outputs with a Dense output layer wrapped in a TimeDistributed layer, set return_sequences = True 
 	if(type == 'GRU'):
-		rnnModel.add(CuDNNGRU(units=10, kernel_initializer='random_uniform', recurrent_initializer='orthogonal', 
+		rnnModel.add(CuDNNGRU(units=32, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', 
 			bias_initializer='zeros', kernel_regularizer=None, recurrent_regularizer=None, 
 			bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, 
-			recurrent_constraint=None, bias_constraint=None, return_sequences=False, 
+			recurrent_constraint=None, bias_constraint=None, return_sequences=True, 
 			return_state=False, stateful=False, input_shape=inputSize))
 
 	if(type == 'LSTM'):
-		rnnModel.add(keras.layers.CuDNNLSTM(units=10, kernel_initializer='random_uniform', recurrent_initializer='orthogonal', 
+		rnnModel.add(CuDNNLSTM(units=32, kernel_initializer='glorot_uniform', recurrent_initializer='orthogonal', 
 			bias_initializer='zeros', unit_forget_bias=True, kernel_regularizer=None, recurrent_regularizer=None, 
 			bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, recurrent_constraint=None, bias_constraint=None, 
-			return_sequences=False, return_state=False, stateful=False, input_shape=inputSize))
+			return_sequences=True, return_state=False, stateful=False, input_shape=inputSize))
 
 	rnnModel.add(Dense(3,activation='softmax'))
 	rnnModel.compile(loss='categorical_crossentropy',optimizer='Adam',metrics=['accuracy'])
@@ -63,23 +64,26 @@ if __name__ == '__main__':
 		data_generator_main('train_files.json','./train/english','./train/hindi','./train/mandarin',1000)
 	else:
 		print('trainingData.hdf5 exists.')
-	X_train, y_train = load_file('./trainingData.hdf5')
+	X, y = load_file('./trainingData.hdf5')
+	X_train, X_val, y_train, y_val = train_test_split(X,y,test_size = 0.15,random_state=42,shuffle=True)
+	print(X_train.shape)
+	print(y_train.shape)
 	numofData,time_length,features = X_train.shape
 
 	rnnModel = Sequential()
-	rnnModel = create_rnn_model(rnnModel,'GRU',(time_length,features))
+	rnnModel = create_rnn_model(rnnModel,'LSTM',(time_length,features))
 	# Print model summary
 	rnnModel.summary()
 	# train
 	rnnModel.fit(x=X_train,
           y=y_train, 
-          batch_size=32, 
-          epochs=10, 
+          batch_size=128, 
+          epochs=50, 
           verbose=1,
-          validation_split=0.15,
+          validation_data=(X_val,y_val),
           shuffle=True
           )
     # Save Model
-    rnnModel.save('my_rnn_model.h5')
-    print('Save Model to Disk')
+	rnnModel.save('my_rnn_model.h5')
+	print('Save Model to Disk')
 

@@ -142,10 +142,14 @@ def data_generator_main(file_1,file_2,file_3,file_4,length):
     # X_train.shape = (286632,64,30)
     # y_train.shape = (286632,1)
     X_train, y_train = data_concatenator(english_X_train,hindi_X_train,mandarin_X_train,english_y_train,hindi_y_train,mandarin_y_train)
-    # print(X_train.shape)
-    # print(y_train.shape)
+    # Shuffle data
+    pi = np.random.permutation(X_train.shape[0])
+    X_train_shuffled = X_train[pi]
+    y_train_shuffled = y_train[pi]
+    # print(X_train_shuffled.shape)
+    # print(y_train_shuffled.shape)
     # Save to h5 file
-    to_hdf5(X_train,y_train)
+    to_hdf5(X_train_shuffled,y_train_shuffled)
     print("Generate a training file: trainingData.hdf5")
     print("Use X_train key to access input of training data")
     print("Use y_train key to access output of training data")

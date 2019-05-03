@@ -11,5 +11,5 @@ This repository contains:
         languageClassification_gpu/cpu.py: use to training RNN to classify language (English, Hindi, Mandarin). This file will generate a RNN model (my_rnn_model.h5) in the same directory.
     2. Training Data Generator File:
         data_generator.py: this file is for training data generation and augmentation.
-    3. Required data file: trainingData.hdf5 to run languageClassification_gpu/cpu.py
+    3. Required data file: trainingData.hdf5 & train_files.json to run languageClassification_gpu/cpu.py
 # Run file: python3 languageClassification_gpu/cpu.py

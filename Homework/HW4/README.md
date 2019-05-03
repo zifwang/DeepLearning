@@ -1,4 +1,8 @@
 # This repository is for emotion classification using CNN and Keras. 
+# Enviornment: 
+    OS: Ubuntu 18.04.2.LTS
+    Python:3.6.7
+    Keras:2.2.4
 This repository contains:
     1. Training Classifier File:
         emotionClassifier_AWS_version.py: this code is used to train emotion classifier in AWS. (.h5 input)
